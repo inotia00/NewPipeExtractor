@@ -167,6 +167,12 @@ public final class YoutubeParsingHelper {
     private static final String ANDROID_YOUTUBE_CLIENT_VERSION = "19.13.36";
 
     /**
+     * The client version for InnerTube requests with the {@code ANDROID_TESTSUITE} client.
+     */
+    private static final String ANDROID_TESTSUITE_YOUTUBE_CLIENT_VERSION = "1.9";
+
+
+    /**
      * The hardcoded client version of the iOS app used for InnerTube requests with this client.
      *
      * <p>
@@ -1121,6 +1127,15 @@ public final class YoutubeParsingHelper {
                 getAndroidUserAgent(localization), endPartOfUrlRequest);
     }
 
+    public static JsonObject getJsonAndroidTestSuitePostResponse(
+            final String endpoint,
+            final byte[] body,
+            @Nonnull final Localization localization,
+            @Nullable final String endPartOfUrlRequest) throws IOException, ExtractionException {
+        return getMobilePostResponse(endpoint, body, localization,
+                getAndroidTestSuiteUserAgent(localization), endPartOfUrlRequest);
+    }
+
     public static JsonObject getJsonIosPostResponse(
             final String endpoint,
             final byte[] body,
@@ -1233,6 +1248,49 @@ public final class YoutubeParsingHelper {
                         //  .value("enableSafetyMode", boolean)
                         .value("lockedSafetyMode", false)
                     .end()
+                .end();
+        // @formatter:on
+    }
+
+    @Nonnull
+    public static JsonBuilder<JsonObject> prepareAndroidMobileTestSuiteJsonBuilder(
+            @Nonnull final Localization localization,
+            @Nonnull final ContentCountry contentCountry) {
+        // @formatter:off
+        return JsonObject.builder()
+                .object("context")
+                .object("client")
+                .value("clientName", "ANDROID_TESTSUITE")
+                .value("clientVersion", ANDROID_TESTSUITE_YOUTUBE_CLIENT_VERSION)
+                .value("platform", "MOBILE")
+                .value("osName", "Android")
+                .value("osVersion", "10")
+                /*
+                A valid Android SDK version is required to be sure to get a valid player
+                response
+                If this parameter is not provided, the player response is replaced by an
+                error saying the message "The following content is not available on this
+                app. Watch this content on the latest version on YouTube" (it was
+                previously a 5-minute video with this message)
+                See https://github.com/TeamNewPipe/NewPipe/issues/8713
+                The Android SDK version corresponding to the Android version used in
+                requests is sent
+                */
+                .value("androidSdkVersion", 29)
+                .value("hl", localization.getLocalizationCode())
+                .value("gl", contentCountry.getCountryCode())
+                .value("utcOffsetMinutes", 0)
+                .end()
+                .object("request")
+                .array("internalExperimentFlags")
+                .end()
+                .value("useSsl", true)
+                .end()
+                .object("user")
+                // TODO: provide a way to enable restricted mode with:
+                //  .value("enableSafetyMode", boolean)
+                .value("lockedSafetyMode", false)
+                .end()
                 .end();
         // @formatter:on
     }
@@ -1352,6 +1410,28 @@ public final class YoutubeParsingHelper {
         // Spoofing an Android 14 device with the hardcoded version of the Android app
         return "com.google.android.youtube/" + ANDROID_YOUTUBE_CLIENT_VERSION
                 + " (Linux; U; Android 14; "
+                + (localization != null ? localization : Localization.DEFAULT).getCountryCode()
+                + ") gzip";
+    }
+
+    /**
+     * Get the user-agent string used as the user-agent for InnerTube requests with the Android Testsuite
+     * client.
+     *
+     * <p>
+     * If the {@link Localization} provided is {@code null}, fallbacks to
+     * {@link Localization#DEFAULT the default one}.
+     * </p>
+     *
+     * @param localization the {@link Localization} to set in the user-agent
+     * @return the Android Testsuite user-agent used for InnerTube requests with the Android Testsuite client,
+     * depending on the {@link Localization} provided
+     */
+    @Nonnull
+    public static String getAndroidTestSuiteUserAgent(@Nullable final Localization localization) {
+        // Spoofing an Android 10 device with the hardcoded version of the Android app
+        return "com.google.android.youtube/" + ANDROID_TESTSUITE_YOUTUBE_CLIENT_VERSION
+                + " (Linux; U; Android 10; "
                 + (localization != null ? localization : Localization.DEFAULT).getCountryCode()
                 + ") gzip";
     }

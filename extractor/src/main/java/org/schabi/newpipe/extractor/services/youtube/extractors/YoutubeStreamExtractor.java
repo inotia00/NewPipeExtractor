@@ -33,10 +33,12 @@ import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.generateTParameter;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getImagesFromThumbnailsArray;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getJsonAndroidPostResponse;
+import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getJsonAndroidTestSuitePostResponse;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getJsonIosPostResponse;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getJsonPostResponse;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getTextFromObject;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.prepareAndroidMobileJsonBuilder;
+import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.prepareAndroidMobileTestSuiteJsonBuilder;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.prepareDesktopJsonBuilder;
 import static org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.prepareIosMobileJsonBuilder;
 import static org.schabi.newpipe.extractor.utils.Utils.isNullOrEmpty;
@@ -798,15 +800,23 @@ public class YoutubeStreamExtractor extends StreamExtractor {
         final ContentCountry contentCountry = getExtractorContentCountry();
         html5Cpn = generateContentPlaybackNonce();
 
-        playerResponse = getJsonPostResponse(PLAYER,
-                createDesktopPlayerBody(
-                        localization,
-                        contentCountry,
-                        videoId,
-                        YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId),
-                        false,
-                        html5Cpn),
-                localization);
+        androidCpn = generateContentPlaybackNonce();
+        final byte[] mobileBody = JsonWriter.string(
+                        prepareAndroidMobileTestSuiteJsonBuilder(localization, contentCountry)
+                                .value(VIDEO_ID, videoId)
+                                .value(CPN, androidCpn)
+                                .value(CONTENT_CHECK_OK, true)
+                                .value(RACY_CHECK_OK, true)
+                                // It seems to be a parameter used in Shorts in the past.
+                                .value("params", "2AMB")
+                                .done())
+                .getBytes(StandardCharsets.UTF_8);
+
+        playerResponse = getJsonAndroidTestSuitePostResponse(PLAYER,
+                mobileBody,
+                localization,
+                "&t=" + generateTParameter()
+                        + "&id=" + videoId);
 
         // Save the playerResponse from the player endpoint of the desktop internal API because
         // there can be restrictions on the embedded player.
